@@ -1,0 +1,9 @@
+{
+  "name": "@patu/cli",
+  "version": "0.0.0",
+  "type": "module",
+  "bin": { "patu": "./dist/index.js" },
+  "files": ["dist"],
+  "scripts": { "build": "tsup" },
+  "dependencies": { "@patu/core": "workspace:*" }
+}
