@@ -1,40 +1,57 @@
-# Patu for JavaScript
+# 🕷️ Patu for JavaScript
 
-Optimize your site's images, SVG, fonts, JS and CSS through [Patu](https://patu.dev)
-— with one command or one Vite plugin.
+**Weave a lighter web.** One command — or one Vite plugin — and Patu shrinks the
+images, SVG and fonts your site ships, then (if you like) serves them from the
+edge. No local image toolchain, no native binaries to compile, no config
+spelunking. You point Patu at your build; smaller files come out the other side.
 
-This is a pnpm monorepo with three packages:
+[![@patu.dev/cli](https://img.shields.io/npm/v/@patu.dev/cli?label=%40patu.dev%2Fcli&color=d98a45)](https://www.npmjs.com/package/@patu.dev/cli)
+[![@patu.dev/vite](https://img.shields.io/npm/v/@patu.dev/vite?label=%40patu.dev%2Fvite&color=d98a45)](https://www.npmjs.com/package/@patu.dev/vite)
+[![node](https://img.shields.io/node/v/@patu.dev/cli?color=3c873a)](https://nodejs.org)
+[![license](https://img.shields.io/npm/l/@patu.dev/cli?color=555)](./LICENSE)
 
-- [`@patu.dev/core`](packages/core/README.md) — the engine (config, HTTP client, cache, rewriters). Used directly if you're building your own integration.
-- [`@patu.dev/cli`](packages/cli/README.md) — the `patu` command, for any build output.
-- [`@patu.dev/vite`](packages/vite/README.md) — a Vite plugin that runs the same engine after `vite build`.
+```text
+      your build output                 patu.dev                 what ships to users
+  ┌──────────────────────┐         .-~~~~~~~~~~~~~-.        ┌──────────────────────┐
+  │  hero.jpg     2.1 MB  │        /                 \      │  hero.avif    384 KB │
+  │  chart.png    540 KB  │  ───▶ (   patu is weaving  ) ─▶ │  chart.webp    92 KB │
+  │  logo.svg      14 KB  │        \    🕷 . 🕸 .     /      │  logo.svg       5 KB │
+  │  Inter.ttf    310 KB  │         `-._________.-'         │  Inter.woff2   61 KB │
+  └──────────────────────┘                                  └──────────────────────┘
+        ~3 MB, "meh"           npx @patu.dev/cli ./dist            ~540 KB, "oh."
+```
 
-All packages require a Patu API key. Get one at [patu.dev](https://patu.dev)
-and set it as `PATU_KEY` in your environment.
+<sub>Numbers are illustrative. Patu's one iron rule: it **never** makes a file bigger, and never touches one it can't beat.</sub>
 
-## Install
+---
+
+## Why Patu?
+
+You already have a bundler. It minifies your JS and CSS beautifully — and then
+happily ships a 2 MB hero JPEG, a PNG chart that should have been WebP, and a
+full-fat TTF. The last mile of web weight is images, SVG and fonts, and doing it
+well means AVIF encoders, quality tuning, SVG sanitising, font subsetting… a
+toolchain nobody wants to babysit in CI.
+
+Patu is that toolchain, hosted. You send bytes, you get back the smallest
+correct version — measured, never guessed. This package is the friendly front
+door: a CLI for any build, a plugin for Vite.
+
+## 30-second start
+
+Grab a free API key at **[patu.dev](https://patu.dev)**, set it as `PATU_KEY`, then:
+
+### CLI — works on any build output
 
 ```bash
-npm install --save-dev @patu.dev/cli
-# or
-npm install --save-dev @patu.dev/vite
+PATU_KEY=your_key  npx @patu.dev/cli ./dist
 ```
 
-## CLI quick start
-
-```bash
-PATU_KEY=your_key npx @patu.dev/cli ./dist
+```text
+patu: 7/9 assets optimized, 1.9 MB saved (63%), 0 failed
 ```
 
-Optimizes images/SVG/fonts in `./dist` in place: smaller bytes written to
-disk, never larger, never broken. Add `--cdn` to also store assets on
-`cdn.patu.dev` (JS and CSS included) and rewrite references to them.
-
-```
-patu <dir> [--cdn] [--strict] [--endpoint URL] [--force]
-```
-
-## Vite quick start
+### Vite — set it and forget it
 
 ```ts
 // vite.config.ts
@@ -43,42 +60,136 @@ import patu from "@patu.dev/vite";
 export default {
   plugins: [patu()], // reads PATU_KEY; runs after `vite build`
 };
-// or: patu({ mode: "cdn" })
 ```
 
-## The two modes
+Run your build. Images come out as AVIF/WebP wrapped in a `<picture>` (with the
+original as a fallback), SVG comes out minified, fonts come out lean — all
+"never bigger, never broken."
 
-- **`optimize`** (default): images, SVG and fonts only. Smaller bytes are
-  written to disk in place. No account storage is used, and JS/CSS are left
-  untouched — bundlers already minify and content-hash them, so this mode's
-  scope stops at binary/markup assets.
-- **`cdn`**: all supported types, including JS and CSS. Assets are stored on
-  `cdn.patu.dev` and references in HTML/CSS are rewritten to point there, with
-  Subresource Integrity (SRI) attributes added. A local original is always
-  kept on disk alongside the rewrite.
+## Two ways to weave
 
-## Guarantees
+Patu has two modes. The default keeps everything on your own host; the opt-in
+mode moves delivery to the edge.
 
-- **Never bigger:** an asset that can't be shrunk is left untouched — the
-  original stays.
-- **Never breaks your build:** an API or network failure keeps the original
-  file and logs a warning instead of failing. Pass `--strict` (CLI) or
-  `{ strict: true }` (Vite) to make that failure exit non-zero / fail the
-  build instead.
+### 🧵 `optimize` — smaller files, still yours _(default)_
 
-## Known limitations
+Optimises **images, SVG and fonts** and writes the smaller bytes right back into
+your build directory. Nothing leaves your infrastructure, nothing is stored
+remotely — you just ship lighter files from wherever you ship today.
 
-- **`cdn` mode has no on-disk fallback for `<script>` and `<link>` tags.**
-  Only `<img>` degrades gracefully: it becomes a `<picture>` whose `<source>`s
-  point at the CDN but whose fallback `<img>` still points at the local
-  original, so a CDN outage just loses the format upgrade. Rewritten
-  `<script src>` and `<link rel="stylesheet" href>` point at `cdn.patu.dev`
-  with no fallback — if the CDN is unreachable, that JS or CSS will fail to
-  load. If that risk is unacceptable for your JS/CSS delivery, keep those
-  assets on `optimize` mode's default scope (which doesn't touch them) or
-  serve them yourself.
-- **Only static HTML/CSS references are rewritten.** The rewriters look at
-  `<img src>`, `<script src>`, `<link href>`, and CSS `url()`/`@font-face` as
-  written in the build output. URLs constructed at runtime in JavaScript
-  (e.g. `new Image().src = base + name + ".png"`) are not seen and are left
-  untouched.
+```bash
+npx @patu.dev/cli ./dist
+```
+
+### 🕸️ `cdn` — serve it from the edge _(opt-in)_
+
+Stores your assets on `cdn.patu.dev` and rewrites the references in your HTML and
+CSS to point there — Brotli-compressed, immutable-cached, and pinned with
+[Subresource Integrity](https://developer.mozilla.org/docs/Web/Security/Subresource_Integrity).
+This lane also covers your JS and CSS (delivery, not re-minifying). The local
+originals stay on disk as a fallback.
+
+```bash
+npx @patu.dev/cli ./dist --cdn
+# or in Vite:  patu({ mode: "cdn" })
+```
+
+## The guarantees (a spider keeps its promises)
+
+- 🪶 **Never bigger.** If Patu can't beat a file, it leaves the original exactly
+  as it was. Your build never gains weight.
+- 🧶 **Never breaks your build.** If an asset can't be optimised — network blip,
+  odd format, whatever — Patu keeps the original, prints a warning, and moves on.
+  Pass `--strict` (CLI) or `strict: true` (Vite) if you'd rather the build fail
+  loudly instead.
+- 🔒 **Integrity by default.** Everything served from the CDN carries an SRI hash,
+  so the browser verifies each file it fetches.
+
+## Packages
+
+| Package | What it's for |
+|---|---|
+| [`@patu.dev/cli`](packages/cli) | The `patu` command — optimise any build output directory. |
+| [`@patu.dev/vite`](packages/vite) | A Vite plugin — the same engine, wired into `vite build`. |
+| [`@patu.dev/core`](packages/core) | The engine (API client, cache, rewriters). Use it directly to build your own integration. |
+
+## CLI reference
+
+```text
+patu <dir> [--cdn] [--strict] [--endpoint <url>] [--force]
+```
+
+| Flag | Meaning |
+|---|---|
+| `--cdn` | Switch to `cdn` mode: store assets on the edge and rewrite references. |
+| `--strict` | Exit non-zero if any asset fails (default: keep going, warn). |
+| `--endpoint <url>` | Point at a different Patu endpoint (self-hosted / staging). |
+| `--force` | Run even if the target looks like a source directory. |
+
+Patu guards you from a classic footgun: point it at a folder that looks like
+**source** (has both `package.json` and `src/`) and it refuses — pass `--force`
+if you really mean it. Aim it at your build output (`dist/`, `build/`, `out/`).
+
+```bash
+# typical CI step
+PATU_KEY=$PATU_KEY  npx @patu.dev/cli ./dist --cdn --strict
+```
+
+## Vite plugin options
+
+```ts
+patu({
+  mode: "optimize" | "cdn",     // default: "optimize"
+  strict: false,                // true → a failed asset fails the build
+  endpoint: "https://patu.dev",
+  apiKey: process.env.PATU_KEY, // falls back to PATU_KEY automatically
+});
+```
+
+The plugin only runs on `vite build` (never during `vite dev`), and it processes
+what Vite actually emitted — hashed filenames and all.
+
+## Good to know (the honest bits)
+
+We'd rather tell you the edges up front than have you find them at 2 a.m.
+
+- **In `cdn` mode, `<script>` and `<link>` have no local fallback.** Images
+  degrade gracefully (the `<picture>` keeps a local `<img>`), but JS and CSS
+  referenced via CDN URLs will fail to load if `cdn.patu.dev` is ever
+  unreachable. If that risk isn't for you, keep scripts and styles in
+  `optimize` mode.
+- **Only static references are rewritten.** Patu rewrites `<img src>`,
+  `<script src>`, `<link href>` and CSS `url()`/`@font-face` as written in your
+  build output. URLs your app builds at runtime in JavaScript are left untouched.
+- **Requires Node 20+, and it's ESM-only** — same neighbourhood as modern Vite.
+
+## How it works
+
+```text
+   walk your build dir
+           │
+           ▼
+   ┌──────────────────┐   image / svg / font ?   ┌────────────────────────────┐
+   │  classify each   │ ───────────────────────▶ │  POST /v1/compress          │
+   │      asset       │                          │  → smaller bytes (or same)  │
+   └──────────────────┘                          └────────────────────────────┘
+           │                                                   │
+           │  cdn mode                                         ▼
+           ▼                                         write to disk / edge,
+   store on cdn.patu.dev  ──────────────────▶   then rewrite <img>→<picture>,
+   (SRI + immutable cache)                      <link>/<script>, and css url()
+```
+
+The whole thing is content-addressed, so re-running on an unchanged build is
+cheap, and a failing asset only ever affects itself.
+
+## About the name
+
+*Patu digua* is one of the smallest spiders known — about **0.37 mm**, small
+enough to live on the webs of *larger* spiders. It weaves the lightest thread
+there is. That's the whole idea: let something tiny do the weaving, so your pages
+stay light. 🕸️
+
+## License
+
+[MIT](./LICENSE) — do what you like with it.
