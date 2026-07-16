@@ -36,8 +36,14 @@ export default function patu(options: PatuPluginOptions = {}): Plugin {
         apiKey: options.apiKey,
       });
       const report = await optimizeDir(outDir, cfg, { log: (m) => viteConfig.logger.warn(m) });
-      const saved = ((report.bytesBefore - report.bytesAfter) / 1024).toFixed(1);
-      viteConfig.logger.info(`patu: ${report.optimized}/${report.assets} assets optimized, ${saved} KB saved`);
+      if (cfg.mode === "cdn") {
+        // Every asset keeps its original bytes on disk in cdn mode (the win is
+        // at delivery from the CDN edge), so "KB saved" would always read ~0.
+        viteConfig.logger.info(`patu: ${report.optimized}/${report.assets} assets served from ${new URL(cfg.cdnBase).host}, ${report.failed} failed`);
+      } else {
+        const saved = ((report.bytesBefore - report.bytesAfter) / 1024).toFixed(1);
+        viteConfig.logger.info(`patu: ${report.optimized}/${report.assets} assets optimized, ${saved} KB saved`);
+      }
       if (options.strict && report.failed > 0) {
         throw new Error(`patu: ${report.failed} asset(s) failed to optimize (strict mode)`);
       }

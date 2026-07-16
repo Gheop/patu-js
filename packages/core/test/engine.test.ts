@@ -62,11 +62,16 @@ test("an asset failure keeps the original and is reported, build not broken", as
 test("cdn mode rewrites to cdn urls with SRI, and a second run is served from cache", async () => {
   srv = await startFakeServer();
   const dir = await mkdtemp(join(tmpdir(), "patu-dist-"));
+  // A dedicated temp cache dir keeps this test hermetic: the cache now lives
+  // outside the build output (per-build-wiped dirs would never keep it
+  // anyway), so it must be pointed somewhere other than the repo cwd. Both
+  // runs below share this same dir so the second run's cache hit is real.
+  const cacheDir = await mkdtemp(join(tmpdir(), "patu-cache-"));
   await writeFile(join(dir, "app.js"), "console.log(1)\n".repeat(50));
   await writeFile(join(dir, "index.html"), `<script src="app.js"></script>`);
   const cfg = resolveConfig({ apiKey: "k", endpoint: srv.url, cdnBase: "https://cdn.patu.dev", mode: "cdn", env: {} });
 
-  await optimizeDir(dir, cfg, { client: new PatuClient(cfg) });
+  await optimizeDir(dir, cfg, { client: new PatuClient(cfg), cacheDir });
   const html = await readFile(join(dir, "index.html"), "utf8");
   expect(html).toContain('src="https://cdn.patu.dev/');
   expect(html).toContain('integrity="');
@@ -75,7 +80,7 @@ test("cdn mode rewrites to cdn urls with SRI, and a second run is served from ca
   // Restore the html and re-run: the manifest comes from the local cache, so
   // the store endpoint is not hit again.
   await writeFile(join(dir, "index.html"), `<script src="app.js"></script>`);
-  await optimizeDir(dir, cfg, { client: new PatuClient(cfg) });
+  await optimizeDir(dir, cfg, { client: new PatuClient(cfg), cacheDir });
   expect(srv.hits()).toBe(afterFirst);
 });
 
@@ -138,15 +143,35 @@ test("optimize mode: one failing format is not fatal to the asset and leaves no 
   await expect(readFile(join(dir, "img", "photo.webp"))).rejects.toThrow(); // never written
 }, 10000);
 
+test("optimize mode leaves JS/CSS untouched (code lane is a cdn-lane concern)", async () => {
+  srv = await startFakeServer();
+  const dir = await mkdtemp(join(tmpdir(), "patu-dist-"));
+  const css = "body{color:red}\n".repeat(20);
+  await writeFile(join(dir, "style.css"), css);
+  await writeFile(join(dir, "index.html"), `<link rel="stylesheet" href="style.css">`);
+  const cfg = resolveConfig({ apiKey: "k", endpoint: srv.url, mode: "optimize", env: {} });
+
+  const report = await optimizeDir(dir, cfg, { client: new PatuClient(cfg) });
+
+  expect(srv.hits()).toBe(0); // never sent to /v1/compress
+  expect(await readFile(join(dir, "style.css"), "utf8")).toBe(css); // unchanged on disk
+  expect(report.assets).toBe(1);
+  expect(report.optimized).toBe(0); // reported as not-optimized
+  expect(report.failed).toBe(0);
+  // In cdn mode the same file IS sent to the server: see "cdn mode rewrites to
+  // cdn urls with SRI..." above, which stores an app.js (code lane) asset.
+});
+
 test("cdn mode keeps the original when no variant is smaller (never-bigger guard)", async () => {
   srv = await startFakeServer(); // fixed manifest: avif=100 bytes, webp=200 bytes
   const dir = await mkdtemp(join(tmpdir(), "patu-dist-"));
+  const cacheDir = await mkdtemp(join(tmpdir(), "patu-cache-"));
   await writeFile(join(dir, "app.js"), "x"); // 1 byte: smaller than any manifest variant
   const before = `<script src="app.js"></script>`;
   await writeFile(join(dir, "index.html"), before);
   const cfg = resolveConfig({ apiKey: "k", endpoint: srv.url, cdnBase: "https://cdn.patu.dev", mode: "cdn", env: {} });
 
-  const report = await optimizeDir(dir, cfg, { client: new PatuClient(cfg) });
+  const report = await optimizeDir(dir, cfg, { client: new PatuClient(cfg), cacheDir });
   expect(report.failed).toBe(0);
   const html = await readFile(join(dir, "index.html"), "utf8");
   expect(html).toBe(before); // untouched: no rewrite to a cdn url
@@ -155,12 +180,13 @@ test("cdn mode keeps the original when no variant is smaller (never-bigger guard
 test("cdn mode image lane keeps the original when no variant is smaller (never-bigger guard)", async () => {
   srv = await startFakeServer(); // fixed manifest: avif=100 bytes, webp=200 bytes
   const dir = await mkdtemp(join(tmpdir(), "patu-dist-"));
+  const cacheDir = await mkdtemp(join(tmpdir(), "patu-cache-"));
   await writeFile(join(dir, "photo.jpg"), Buffer.alloc(50, 1)); // 50 bytes: smaller than any manifest variant
   const before = `<img src="photo.jpg" alt="A">`;
   await writeFile(join(dir, "index.html"), before);
   const cfg = resolveConfig({ apiKey: "k", endpoint: srv.url, cdnBase: "https://cdn.patu.dev", mode: "cdn", env: {} });
 
-  const report = await optimizeDir(dir, cfg, { client: new PatuClient(cfg) });
+  const report = await optimizeDir(dir, cfg, { client: new PatuClient(cfg), cacheDir });
   expect(report.failed).toBe(0);
   const html = await readFile(join(dir, "index.html"), "utf8");
   expect(html).toBe(before); // untouched: no picture rewrite

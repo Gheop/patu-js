@@ -1,3 +1,4 @@
+import { pathToFileURL } from "node:url";
 import { resolveConfig, optimizeDir } from "@patu/core";
 import { looksLikeSource } from "./source-guard.js";
 
@@ -42,13 +43,20 @@ export async function run(argv: string[]): Promise<number> {
     console.error(e instanceof Error ? e.message : String(e));
     return 1;
   }
-  const saved = report.bytesBefore - report.bytesAfter;
-  const pct = report.bytesBefore ? Math.round((saved / report.bytesBefore) * 100) : 0;
-  console.log(`patu: ${report.optimized}/${report.assets} assets optimized, ${(saved / 1024).toFixed(1)} KB saved (${pct}%), ${report.failed} failed`);
+  if (cfg.mode === "cdn") {
+    // On disk every asset keeps its original bytes in cdn mode (the win is at
+    // delivery, from the CDN edge), so a "KB saved" figure here would always
+    // read as ~0 despite a real gain. Report what actually happened instead.
+    console.log(`patu: ${report.optimized}/${report.assets} assets served from ${new URL(cfg.cdnBase).host}, ${report.failed} failed`);
+  } else {
+    const saved = report.bytesBefore - report.bytesAfter;
+    const pct = report.bytesBefore ? Math.round((saved / report.bytesBefore) * 100) : 0;
+    console.log(`patu: ${report.optimized}/${report.assets} assets optimized, ${(saved / 1024).toFixed(1)} KB saved (${pct}%), ${report.failed} failed`);
+  }
   return args.strict && report.failed > 0 ? 1 : 0;
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (import.meta.url === pathToFileURL(process.argv[1]).href) {
   run(process.argv.slice(2))
     .then((code) => process.exit(code))
     .catch((err) => { console.error(err instanceof Error ? err.message : String(err)); process.exit(1); });

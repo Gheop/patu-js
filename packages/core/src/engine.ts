@@ -36,11 +36,18 @@ interface OneResult { produced: Produced | null; diskBytes: number }
 export async function optimizeDir(
   root: string,
   cfg: PatuConfig,
-  opts: { client?: PatuClient; log?: (m: string) => void } = {},
+  opts: { client?: PatuClient; log?: (m: string) => void; cacheDir?: string } = {},
 ): Promise<EngineReport> {
   const client = opts.client ?? new PatuClient(cfg);
   const log = opts.log ?? (() => {});
-  const cache = await AssetCache.load(join(root, ".patu", "cache.json"));
+  // The cache is a cdn-mode concern only (it dedups /v1/store calls by content
+  // hash): optimize mode has no server-side storage step to skip, so it must
+  // not create, load, or save any cache file. Its location is outside `root`
+  // on purpose — `root` is the build output, wiped and redeployed every
+  // build, so a cache inside it would never survive to the next run.
+  const cache = cfg.mode === "cdn"
+    ? await AssetCache.load(join(opts.cacheDir ?? join(process.cwd(), ".patu"), "cache.json"))
+    : undefined;
   const files = await walk(root);
   const report: EngineReport = { assets: 0, optimized: 0, failed: 0, bytesBefore: 0, bytesAfter: 0, failures: [] };
   const produced = new Map<string, Produced>(); // absolute asset path -> produced refs
@@ -89,27 +96,29 @@ export async function optimizeDir(
     }
   }
 
-  await cache.save();
+  if (cache) await cache.save();
   // Strictness is a caller policy, not an engine concern: optimizeDir always
-  // returns the report (never throws for failures); the caller (e.g. the CLI)
-  // reads cfg.strict/report.failed itself to decide the process exit code.
+  // returns the report (never throws for failures); the caller (e.g. the CLI
+  // or the Vite plugin) reads its own strict option and report.failed to
+  // decide the process exit code / whether to fail the build.
   return report;
 }
 
 // optimizeOne routes one asset by mode and lane. optimize mode uses inline
 // compress (no server storage): images request avif+webp written next to the
-// original for a <picture>; svg/font/code are overwritten in place (no
-// reference change → produced null). cdn mode stores the asset (its manifest is
+// original for a <picture>; svg/font are overwritten in place (no reference
+// change → produced null); code (JS/CSS bundler output) is left untouched —
+// that is a cdn-lane concern. cdn mode stores the asset (its manifest is
 // cached by content hash to skip re-uploading unchanged bytes) and references
 // the manifest's cdn urls, keeping the local original as the <picture> fallback
 // for graceful degradation.
 async function optimizeOne(
   abs: string, bytes: Uint8Array, lane: Lane, contentType: string,
-  formats: string[] | undefined, cfg: PatuConfig, client: PatuClient, cache: AssetCache,
+  formats: string[] | undefined, cfg: PatuConfig, client: PatuClient, cache: AssetCache | undefined,
 ): Promise<OneResult> {
   if (cfg.mode === "cdn") {
     const key = `cdn:${contentHash(bytes)}`;
-    const hit = cache.get(key);
+    const hit = cache?.get(key);
     let manifest: Manifest;
     if (hit && Array.isArray((hit as { variants?: unknown }).variants)) {
       manifest = parseManifest(hit);
@@ -117,7 +126,7 @@ async function optimizeOne(
       const stored = await client.store(bytes, { contentType });
       if (!stored.ok) throw new Error(stored.error);
       manifest = stored.manifest;
-      cache.set(key, manifest as unknown as Record<string, unknown>);
+      cache?.set(key, manifest as unknown as Record<string, unknown>);
     }
     const cdnUrl = (v: { url: string }) => cfg.cdnBase + urlPath(v.url);
     if (lane === "image") {
@@ -171,7 +180,14 @@ async function optimizeOne(
     return { produced: { picture: { avif: written.avif, webp: written.webp, fallback: { file: abs } } }, diskBytes: smallest };
   }
 
-  // svg / font / code: single inline optimization, overwrite in place if smaller.
+  // optimize mode's scope is images/svg/fonts; JS/CSS bundler output is a
+  // cdn-lane concern (already minified and content-hashed by the bundler, so
+  // re-minifying here is near-zero gain and risks a hash/sourcemap mismatch
+  // from overwriting it in place). cdn mode never reaches this branch (it
+  // returns above), so this only ever runs in optimize mode.
+  if (lane === "code") return { produced: null, diskBytes: bytes.length };
+
+  // svg / font: single inline optimization, overwrite in place if smaller.
   const out = await client.compress(bytes, { contentType });
   if (!out.ok) throw new Error(out.error);
   if (out.outputBytes >= bytes.length) return { produced: null, diskBytes: bytes.length }; // never bigger
