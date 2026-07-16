@@ -7,4 +7,6 @@ export { classify } from "./classify.js";
 export type { Lane, AssetClass } from "./classify.js";
 export { createLimiter } from "./limit.js";
 export { PatuClient } from "./client.js";
-export type { CompressOutcome } from "./client.js";
+export type { CompressOutcome, StoreOutcome } from "./client.js";
+export { parseManifest } from "./manifest.js";
+export type { Manifest, ManifestVariant } from "./manifest.js";

@@ -36,3 +36,13 @@ test("gives up after max retries and returns an error, never throws", async () =
   expect(out.ok).toBe(false);
   if (!out.ok) expect(out.error).toMatch(/500/);
 });
+
+test("store returns a parsed manifest with cdn variants", async () => {
+  srv = await startFakeServer();
+  const client = new PatuClient(resolveConfig({ apiKey: "k", endpoint: srv.url, env: {} }));
+  const out = await client.store(bytes(), { contentType: "image/jpeg" });
+  expect(out.ok).toBe(true);
+  if (out.ok) {
+    expect(out.manifest.variants.map((v) => v.format)).toEqual(["avif", "webp"]);
+  }
+});

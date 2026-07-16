@@ -1,9 +1,12 @@
 import type { PatuConfig } from "./config.js";
 import { createLimiter } from "./limit.js";
+import { parseManifest, type Manifest } from "./manifest.js";
 
 export type CompressOutcome =
   | { ok: true; bytes: Uint8Array; format: string; outputBytes: number; integrity: string; score: number | null; latencyMs: number }
   | { ok: false; error: string };
+
+export type StoreOutcome = { ok: true; manifest: Manifest } | { ok: false; error: string };
 
 const MAX_ATTEMPTS = 4;
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -25,6 +28,31 @@ export class PatuClient {
     const qs = opts.formats?.length ? `?formats=${opts.formats.join(",")}` : "";
     const url = `${this.cfg.endpoint}/v1/compress${qs}${qs ? "&" : "?"}${this.cfg.target ? `target=${this.cfg.target}` : ""}`.replace(/[?&]$/, "");
     return this.gate(() => this.send(url, bytes, opts.contentType));
+  }
+
+  async store(bytes: Uint8Array, opts: { contentType: string }): Promise<StoreOutcome> {
+    const url = `${this.cfg.endpoint}/v1/compress?mode=stored`;
+    return this.gate(async () => {
+      for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+        try {
+          const res = await fetch(url, {
+            method: "POST",
+            headers: { "X-Api-Key": this.cfg.apiKey, "Content-Type": opts.contentType },
+            body: bytes,
+          });
+          if (res.status === 429 || res.status >= 500) {
+            if (attempt < MAX_ATTEMPTS) { await sleep(backoffMs(attempt, res.headers.get("Retry-After"))); continue; }
+            return { ok: false, error: `HTTP ${res.status}` };
+          }
+          if (!res.ok) return { ok: false, error: `HTTP ${res.status}` };
+          return { ok: true, manifest: parseManifest(await res.json()) };
+        } catch (e) {
+          if (attempt < MAX_ATTEMPTS) { await sleep(backoffMs(attempt, null)); continue; }
+          return { ok: false, error: e instanceof Error ? e.message : String(e) };
+        }
+      }
+      return { ok: false, error: "unreachable" };
+    });
   }
 
   private async send(url: string, bytes: Uint8Array, contentType: string): Promise<CompressOutcome> {

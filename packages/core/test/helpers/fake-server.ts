@@ -18,11 +18,22 @@ export async function startFakeServer(
       const mode = behavior(hits);
       if (mode === "500") { res.writeHead(500).end("boom"); return; }
       if (mode === "429") { res.writeHead(429, { "Retry-After": "0" }).end("slow down"); return; }
+      const reqUrl = new URL(req.url ?? "/", "http://x");
+      if (reqUrl.searchParams.get("mode") === "stored") {
+        const id = createHash("sha1").update(Buffer.concat(chunks)).digest("hex").slice(0, 8);
+        res.writeHead(200, { "Content-Type": "application/json" }).end(JSON.stringify({
+          schema: 1, id,
+          variants: [
+            { url: `/v1/asset/${id}/0.avif`, format: "avif", width: 0, bytes: 100, integrity: "sha384-a" },
+            { url: `/v1/asset/${id}/0.webp`, format: "webp", width: 0, bytes: 200, integrity: "sha384-b" },
+          ],
+        }));
+        return;
+      }
       const input = Buffer.concat(chunks);
       // "toobig" returns bytes larger than the input to exercise never-bigger.
       const out = mode === "toobig" ? Buffer.concat([input, input]) : input.subarray(0, Math.max(1, input.length >> 1));
-      const url = new URL(req.url ?? "/", "http://x");
-      const fmt = (url.searchParams.get("formats") ?? "webp").split(",")[0];
+      const fmt = (reqUrl.searchParams.get("formats") ?? "webp").split(",")[0];
       res.writeHead(200, {
         "X-Patu-Original-Bytes": String(input.length),
         "X-Patu-Output-Bytes": String(out.length),
