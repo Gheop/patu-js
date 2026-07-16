@@ -1,50 +1,57 @@
-# @patu.dev/vite
+# 🕷️ @patu.dev/vite
 
-A Vite plugin that runs [`@patu.dev/core`](../core/README.md)'s optimizer over
-Vite's build output — the same engine as [`@patu.dev/cli`](../cli/README.md), so
-both behave identically. See the [root README](../../README.md) for the two
-modes and the never-bigger/never-break guarantees.
+A Vite plugin that optimises your build output through [Patu](https://patu.dev):
+the same engine as the CLI, wired straight into `vite build`. Set it once, forget
+it, ship lighter pages. Never bigger, never breaks your build.
 
-Requires a Patu API key, via `PATU_KEY` in the environment or the `apiKey`
-option.
+Part of [**Patu for JavaScript**](https://github.com/Gheop/patu-js): see the root
+README for the full story, the two modes, and the CLI.
 
-## Usage
+## Quick start
+
+Grab a free key at [patu.dev](https://patu.dev), set it as `PATU_KEY`, then:
 
 ```ts
 // vite.config.ts
 import patu from "@patu.dev/vite";
 
 export default {
-  plugins: [patu()],
+  plugins: [patu()], // reads PATU_KEY
 };
 ```
 
-The plugin only runs for production builds (`apply: "build"`). It hooks
-`closeBundle`, so it runs once Vite has finished writing `build.outDir`, and
-optimizes that directory in place.
+Run `vite build`. Your images come out as AVIF/WebP inside a `<picture>`, your
+SVG minified, your fonts lean. The plugin only runs for production builds
+(`apply: "build"`), never during `vite dev`, and it processes what Vite actually
+emitted, hashed filenames and all.
 
-## `patu(options?)`
+## Options
 
 ```ts
 interface PatuPluginOptions {
   mode?: "optimize" | "cdn"; // default "optimize"
-  endpoint?: string;          // default "https://patu.dev"
-  strict?: boolean;           // default false
-  apiKey?: string;            // falls back to PATU_KEY
+  endpoint?: string;         // default "https://patu.dev"
+  strict?: boolean;          // default false
+  apiKey?: string;           // falls back to PATU_KEY
 }
 ```
 
-- `mode: "cdn"` — store JS/CSS/images/SVG/fonts on `cdn.patu.dev` and rewrite
-  references, instead of the default `optimize` (images/SVG/fonts only,
-  smaller bytes written to disk, no account storage).
-- `strict: true` — throw from `closeBundle` (failing the Vite build) if any
-  asset failed to optimize. Default: keep the original, log a warning via
-  Vite's logger, and let the build succeed.
-- `endpoint` — override the Patu API endpoint.
-- `apiKey` — pass a key directly instead of relying on `PATU_KEY`.
+- **`mode: "cdn"`** stores your assets (JS and CSS included) on `cdn.patu.dev`
+  and rewrites references to point there, with SRI and a local fallback. The
+  default `optimize` mode touches images, SVG and fonts only, writing smaller
+  bytes back to disk with no remote storage.
+- **`strict: true`** fails the Vite build if any asset failed to optimise.
+  Default: keep the original, log a warning via Vite's logger, let the build
+  succeed.
+- **`endpoint`** points at a different Patu endpoint (self-hosted or staging).
+- **`apiKey`** passes a key directly instead of relying on `PATU_KEY`.
 
 ```ts
 export default {
   plugins: [patu({ mode: "cdn", strict: true })],
 };
 ```
+
+## License
+
+[MIT](./LICENSE).
