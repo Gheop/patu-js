@@ -15,3 +15,5 @@ export type { CacheEntry } from "./cache.js";
 export { rewriteHtml } from "./rewrite-html.js";
 export type { RewriteMap, RewriteEntry, PictureRef } from "./rewrite-html.js";
 export { rewriteCss } from "./rewrite-css.js";
+export { optimizeDir } from "./engine.js";
+export type { EngineReport } from "./engine.js";
