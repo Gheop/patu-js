@@ -1,3 +1,4 @@
+import { resolve } from "node:path";
 import { resolveConfig as resolvePatuConfig, optimizeDir, type Mode } from "@patu/core";
 import type { Plugin, ResolvedConfig } from "vite";
 
@@ -27,7 +28,7 @@ export default function patu(options: PatuPluginOptions = {}): Plugin {
       viteConfig = c;
     },
     async closeBundle() {
-      const outDir = viteConfig.build.outDir;
+      const outDir = resolve(viteConfig.root, viteConfig.build.outDir);
       const cfg = resolvePatuConfig({
         mode: options.mode ?? "optimize",
         endpoint: options.endpoint,
