@@ -12,12 +12,12 @@ spelunking. You point Patu at your build; smaller files come out the other side.
 
 ```text
       your build output                 patu.dev                 what ships to users
-  ┌──────────────────────┐         .-~~~~~~~~~~~~~-.        ┌──────────────────────┐
-  │  hero.jpg     2.1 MB  │        /                 \      │  hero.avif    384 KB │
-  │  chart.png    540 KB  │  ───▶ (   patu is weaving  ) ─▶ │  chart.webp    92 KB │
-  │  logo.svg      14 KB  │        \    🕷 . 🕸 .     /      │  logo.svg       5 KB │
-  │  Inter.ttf    310 KB  │         `-._________.-'         │  Inter.woff2   61 KB │
-  └──────────────────────┘                                  └──────────────────────┘
+  ┌───────────────────────┐         .-~~~~~~~~~~~~~-.        ┌──────────────────────┐
+  │  hero.jpg     2.1 MB  │        /                 \       │  hero.avif    384 KB │
+  │  chart.png    540 KB  │  ───▶ ( patu is weaving  ) ─▶  │  chart.webp    92 KB │
+  │  logo.svg      14 KB  │        \    🕷 . 🕸 .     /       │  logo.svg       5 KB │
+  │  Inter.ttf    310 KB  │         `-._________.-'          │  Inter.woff2   61 KB │
+  └───────────────────────┘                                  └──────────────────────┘
         ~3 MB, "meh"           npx @patu.dev/cli ./dist            ~540 KB, "oh."
 ```
 
