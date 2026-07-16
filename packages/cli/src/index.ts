@@ -32,7 +32,16 @@ export async function run(argv: string[]): Promise<number> {
     console.error(e instanceof Error ? e.message : String(e));
     return 2;
   }
-  const report = await optimizeDir(args.dir, cfg, { log: (m) => console.warn(m) });
+  // optimizeDir never throws for per-asset/strict failures, but an unexpected
+  // rejection (e.g. the target directory does not exist) must still exit
+  // cleanly instead of crashing with a raw stack trace.
+  let report;
+  try {
+    report = await optimizeDir(args.dir, cfg, { log: (m) => console.warn(m) });
+  } catch (e) {
+    console.error(e instanceof Error ? e.message : String(e));
+    return 1;
+  }
   const saved = report.bytesBefore - report.bytesAfter;
   const pct = report.bytesBefore ? Math.round((saved / report.bytesBefore) * 100) : 0;
   console.log(`patu: ${report.optimized}/${report.assets} assets optimized, ${(saved / 1024).toFixed(1)} KB saved (${pct}%), ${report.failed} failed`);
@@ -40,5 +49,7 @@ export async function run(argv: string[]): Promise<number> {
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
-  run(process.argv.slice(2)).then((code) => process.exit(code));
+  run(process.argv.slice(2))
+    .then((code) => process.exit(code))
+    .catch((err) => { console.error(err instanceof Error ? err.message : String(err)); process.exit(1); });
 }

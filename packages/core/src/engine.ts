@@ -90,7 +90,9 @@ export async function optimizeDir(
   }
 
   await cache.save();
-  if (cfg.strict && report.failed > 0) throw new Error(`patu: ${report.failed} asset(s) failed and strict mode is on`);
+  // Strictness is a caller policy, not an engine concern: optimizeDir always
+  // returns the report (never throws for failures); the caller (e.g. the CLI)
+  // reads cfg.strict/report.failed itself to decide the process exit code.
   return report;
 }
 
