@@ -1,3 +1,4 @@
+import { realpathSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 import { resolveConfig, optimizeDir } from "@patu.dev/core";
 import { looksLikeSource } from "./source-guard.js";
@@ -56,7 +57,22 @@ export async function run(argv: string[]): Promise<number> {
   return args.strict && report.failed > 0 ? 1 : 0;
 }
 
-if (import.meta.url === pathToFileURL(process.argv[1]).href) {
+// Run as a CLI only when this file is the entry point. The installed `patu` bin
+// is a symlink (node_modules/.bin/patu -> dist/index.js) and Node reports
+// import.meta.url as the RESOLVED real path, so process.argv[1] must be run
+// through realpath before comparing. Without it, every `npx`/installed-bin
+// invocation would silently no-op. Importing the module (tests) never matches.
+function invokedAsCli(): boolean {
+  const entry = process.argv[1];
+  if (!entry) return false;
+  try {
+    return import.meta.url === pathToFileURL(realpathSync(entry)).href;
+  } catch {
+    return false;
+  }
+}
+
+if (invokedAsCli()) {
   run(process.argv.slice(2))
     .then((code) => process.exit(code))
     .catch((err) => { console.error(err instanceof Error ? err.message : String(err)); process.exit(1); });
