@@ -3,11 +3,17 @@ import { createHash } from "node:crypto";
 
 export interface FakeServer { url: string; close: () => Promise<void>; hits: () => number }
 
+// RequestInfo lets `behavior` discriminate by request instead of only by hit
+// count, which matters when several assets fire concurrently and the arrival
+// order at the server is not deterministic (e.g. an image's two format
+// requests interleaved with an unrelated CSS file's single request).
+export interface RequestInfo { contentType: string; url: URL }
+
 // startFakeServer stands in for Patu's /v1/compress. It echoes a shrunk body
 // and the X-Patu-* headers the client reads. `behavior` lets a test force
 // errors, retryable statuses or a slow response.
 export async function startFakeServer(
-  behavior: (n: number) => "ok" | "500" | "429" | "toobig" = () => "ok",
+  behavior: (n: number, info: RequestInfo) => "ok" | "500" | "429" | "toobig" = () => "ok",
 ): Promise<FakeServer> {
   let hits = 0;
   const server: Server = createServer((req, res) => {
@@ -15,10 +21,11 @@ export async function startFakeServer(
     req.on("data", (c) => chunks.push(c));
     req.on("end", () => {
       hits++;
-      const mode = behavior(hits);
+      const reqUrl = new URL(req.url ?? "/", "http://x");
+      const contentType = req.headers["content-type"] ?? "";
+      const mode = behavior(hits, { contentType, url: reqUrl });
       if (mode === "500") { res.writeHead(500).end("boom"); return; }
       if (mode === "429") { res.writeHead(429, { "Retry-After": "0" }).end("slow down"); return; }
-      const reqUrl = new URL(req.url ?? "/", "http://x");
       if (reqUrl.searchParams.get("mode") === "stored") {
         const id = createHash("sha1").update(Buffer.concat(chunks)).digest("hex").slice(0, 8);
         res.writeHead(200, { "Content-Type": "application/json" }).end(JSON.stringify({

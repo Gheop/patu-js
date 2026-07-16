@@ -50,16 +50,22 @@ export async function optimizeDir(
     .map(async (abs) => {
       report.assets++;
       const cls = classify(basename(abs));
-      const bytes = new Uint8Array(await readFile(abs));
-      report.bytesBefore += bytes.length;
+      // The read is inside the try so an unreadable/deleted file (EACCES, gone
+      // since the walk) is recorded as a per-asset failure instead of aborting
+      // the whole run. `bytes` is tracked outside the try so a failure after a
+      // successful read still counts the original size toward bytesAfter (kept
+      // as-is); a failed read has no size to count on either side.
+      let bytes: Uint8Array | undefined;
       try {
+        bytes = new Uint8Array(await readFile(abs));
+        report.bytesBefore += bytes.length;
         const res = await optimizeOne(abs, bytes, cls.lane, cls.contentType, cls.formats, cfg, client, cache);
         if (res.produced) produced.set(abs, res.produced);
         report.bytesAfter += res.diskBytes;
         if (res.diskBytes < bytes.length || res.produced) report.optimized++;
       } catch (e) {
         report.failed++;
-        report.bytesAfter += bytes.length;
+        if (bytes) report.bytesAfter += bytes.length; // kept original; keep before/after in sync
         report.failures.push({ file: relative(root, abs), error: e instanceof Error ? e.message : String(e) });
         log(`patu: kept original for ${relative(root, abs)} (${e instanceof Error ? e.message : e})`);
       }
@@ -70,9 +76,17 @@ export async function optimizeDir(
     if (ext !== ".html" && ext !== ".css") continue;
     const localMap = mapForFile(abs, root, produced);
     if (localMap.size === 0) continue;
-    const text = await readFile(abs, "utf8");
-    const out = ext === ".html" ? rewriteHtml(text, localMap) : rewriteCss(text, localMap);
-    if (out !== text) await writeFile(abs, out);
+    // Wrapped so one malformed document (e.g. CssSyntaxError from postcss)
+    // cannot discard the whole report and every already-optimized asset.
+    try {
+      const text = await readFile(abs, "utf8");
+      const out = ext === ".html" ? rewriteHtml(text, localMap) : rewriteCss(text, localMap);
+      if (out !== text) await writeFile(abs, out);
+    } catch (e) {
+      report.failed++;
+      report.failures.push({ file: relative(root, abs), error: e instanceof Error ? e.message : String(e) });
+      log(`patu: left ${relative(root, abs)} unrewritten (${e instanceof Error ? e.message : e})`);
+    }
   }
 
   await cache.save();
@@ -107,16 +121,22 @@ async function optimizeOne(
     if (lane === "image") {
       const avif = manifest.variants.find((v) => v.format === "avif");
       const webp = manifest.variants.find((v) => v.format === "webp");
+      // Never-bigger guard: only reference a variant that is strictly smaller
+      // than the local original; if none qualify, keep the original untouched.
+      const avifOk = avif && avif.bytes < bytes.length ? avif : undefined;
+      const webpOk = webp && webp.bytes < bytes.length ? webp : undefined;
+      if (!avifOk && !webpOk) return { produced: null, diskBytes: bytes.length };
       return {
         produced: { picture: {
-          avif: avif ? { url: cdnUrl(avif) } : undefined,
-          webp: webp ? { url: cdnUrl(webp) } : undefined,
+          avif: avifOk ? { url: cdnUrl(avifOk) } : undefined,
+          webp: webpOk ? { url: cdnUrl(webpOk) } : undefined,
           fallback: { file: abs }, // local original: still works if the CDN is down
         } },
         diskBytes: bytes.length, // original stays on disk unchanged
       };
     }
     const best = [...manifest.variants].sort((a, b) => a.bytes - b.bytes)[0];
+    if (!best || best.bytes >= bytes.length) return { produced: null, diskBytes: bytes.length }; // never bigger; keep original
     return { produced: { plain: { target: { url: cdnUrl(best) }, integrity: best.integrity } }, diskBytes: bytes.length };
   }
 
@@ -125,15 +145,25 @@ async function optimizeOne(
   if (lane === "image") {
     const written: { avif?: Ref; webp?: Ref } = {};
     let smallest = bytes.length;
+    let wroteAny = false;
     for (const fmt of formats ?? []) {
       const out = await client.compress(bytes, { contentType, formats: [fmt] });
-      if (!out.ok) throw new Error(out.error);
+      if (!out.ok) {
+        // Once an earlier format has already been written to disk, a later
+        // format failing (e.g. a mid-loop outage) is not fatal to the asset:
+        // skip it and keep the format(s) that succeeded, so nothing already
+        // written is left orphaned. Before anything has been written there is
+        // no orphan risk, so this is still an asset failure (kept original).
+        if (wroteAny) continue;
+        throw new Error(out.error);
+      }
       if (out.outputBytes >= bytes.length) continue; // never bigger
       const p = withExt(abs, fmt);
       await writeFile(p, out.bytes);
       if (fmt === "avif") written.avif = { file: p };
       else if (fmt === "webp") written.webp = { file: p };
       smallest = Math.min(smallest, out.outputBytes);
+      wroteAny = true;
     }
     if (!written.avif && !written.webp) return { produced: null, diskBytes: bytes.length }; // nothing helped
     return { produced: { picture: { avif: written.avif, webp: written.webp, fallback: { file: abs } } }, diskBytes: smallest };
