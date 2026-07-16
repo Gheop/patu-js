@@ -151,3 +151,18 @@ test("cdn mode keeps the original when no variant is smaller (never-bigger guard
   const html = await readFile(join(dir, "index.html"), "utf8");
   expect(html).toBe(before); // untouched: no rewrite to a cdn url
 });
+
+test("cdn mode image lane keeps the original when no variant is smaller (never-bigger guard)", async () => {
+  srv = await startFakeServer(); // fixed manifest: avif=100 bytes, webp=200 bytes
+  const dir = await mkdtemp(join(tmpdir(), "patu-dist-"));
+  await writeFile(join(dir, "photo.jpg"), Buffer.alloc(50, 1)); // 50 bytes: smaller than any manifest variant
+  const before = `<img src="photo.jpg" alt="A">`;
+  await writeFile(join(dir, "index.html"), before);
+  const cfg = resolveConfig({ apiKey: "k", endpoint: srv.url, cdnBase: "https://cdn.patu.dev", mode: "cdn", env: {} });
+
+  const report = await optimizeDir(dir, cfg, { client: new PatuClient(cfg) });
+  expect(report.failed).toBe(0);
+  const html = await readFile(join(dir, "index.html"), "utf8");
+  expect(html).toBe(before); // untouched: no picture rewrite
+  expect(html).not.toContain("cdn.patu.dev"); // no cdn reference
+});
