@@ -1,6 +1,6 @@
-# @patu/cli
+# @patu.dev/cli
 
-The `patu` command: runs [`@patu/core`](../core/README.md)'s optimizer over a
+The `patu` command: runs [`@patu.dev/core`](../core/README.md)'s optimizer over a
 build-output directory. See the [root README](../../README.md) for the two
 modes and the never-bigger/never-break guarantees.
 
@@ -9,7 +9,7 @@ Requires a Patu API key in `PATU_KEY`.
 ## Usage
 
 ```bash
-PATU_KEY=your_key npx @patu/cli <dir> [--cdn] [--strict] [--endpoint URL] [--force]
+PATU_KEY=your_key npx @patu.dev/cli <dir> [--cdn] [--strict] [--endpoint URL] [--force]
 ```
 
 - `<dir>` — the build output to optimize (required). Refused if it looks like

@@ -1,9 +1,46 @@
 {
-  "name": "@patu/cli",
-  "version": "0.0.0",
+  "name": "@patu.dev/cli",
+  "version": "0.1.0",
   "type": "module",
-  "bin": { "patu": "./dist/index.js" },
-  "files": ["dist"],
-  "scripts": { "build": "tsup" },
-  "dependencies": { "@patu/core": "workspace:*" }
+  "bin": {
+    "patu": "./dist/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "prepublishOnly": "tsup"
+  },
+  "dependencies": {
+    "@patu.dev/core": "workspace:*"
+  },
+  "description": "CLI that optimizes a build directory's images, SVG and fonts through the Patu API.",
+  "keywords": [
+    "patu",
+    "cli",
+    "image-optimization",
+    "avif",
+    "webp",
+    "cdn",
+    "build",
+    "assets"
+  ],
+  "license": "MIT",
+  "author": "Patu",
+  "homepage": "https://github.com/Gheop/patu-js/tree/main/packages/cli#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Gheop/patu-js.git",
+    "directory": "packages/cli"
+  },
+  "bugs": {
+    "url": "https://github.com/Gheop/patu-js/issues"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
 }

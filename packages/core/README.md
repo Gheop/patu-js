@@ -1,8 +1,8 @@
-# @patu/core
+# @patu.dev/core
 
 The Patu engine: config resolution, the HTTP client, the rewriters and the
-directory optimizer that power [`@patu/cli`](../cli/README.md) and
-[`@patu/vite`](../vite/README.md). Use it directly to build your own
+directory optimizer that power [`@patu.dev/cli`](../cli/README.md) and
+[`@patu.dev/vite`](../vite/README.md). Use it directly to build your own
 integration; otherwise see the [root README](../../README.md) for the two
 CLI/Vite façades, the two modes, and the guarantees.
 
@@ -12,7 +12,7 @@ passed to `resolveConfig`.
 ## `resolveConfig(input?)`
 
 ```ts
-import { resolveConfig } from "@patu/core";
+import { resolveConfig } from "@patu.dev/core";
 
 const cfg = resolveConfig({ mode: "cdn", strict: true });
 ```
@@ -41,7 +41,7 @@ interface ConfigInput extends Partial<PatuConfig> {
 ## `PatuClient`
 
 ```ts
-import { PatuClient } from "@patu/core";
+import { PatuClient } from "@patu.dev/core";
 
 const client = new PatuClient(cfg);
 const out = await client.compress(bytes, { contentType: "image/png", formats: ["avif", "webp"] });
@@ -63,7 +63,7 @@ exponential backoff honoring `Retry-After`.
 ## `optimizeDir(root, cfg, opts?)`
 
 ```ts
-import { optimizeDir } from "@patu/core";
+import { optimizeDir } from "@patu.dev/core";
 
 const report = await optimizeDir("./dist", cfg, { log: (m) => console.warn(m) });
 // report: { assets, optimized, failed, bytesBefore, bytesAfter, failures }

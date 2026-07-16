@@ -1,13 +1,57 @@
 {
-  "name": "@patu/vite",
-  "version": "0.0.0",
+  "name": "@patu.dev/vite",
+  "version": "0.1.0",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
-  "exports": { ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" } },
-  "files": ["dist"],
-  "scripts": { "build": "tsup" },
-  "peerDependencies": { "vite": ">=5" },
-  "dependencies": { "@patu/core": "workspace:*" },
-  "devDependencies": { "vite": "^5.4.0" }
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "prepublishOnly": "tsup"
+  },
+  "peerDependencies": {
+    "vite": ">=5"
+  },
+  "dependencies": {
+    "@patu.dev/core": "workspace:*"
+  },
+  "devDependencies": {
+    "vite": "^5.4.0"
+  },
+  "description": "Vite plugin that optimizes the build output through the Patu API.",
+  "keywords": [
+    "patu",
+    "vite",
+    "vite-plugin",
+    "image-optimization",
+    "avif",
+    "webp",
+    "cdn"
+  ],
+  "license": "MIT",
+  "author": "Patu",
+  "homepage": "https://github.com/Gheop/patu-js/tree/main/packages/vite#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Gheop/patu-js.git",
+    "directory": "packages/vite"
+  },
+  "bugs": {
+    "url": "https://github.com/Gheop/patu-js/issues"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "sideEffects": false
 }

@@ -5,9 +5,9 @@ Optimize your site's images, SVG, fonts, JS and CSS through [Patu](https://patu.
 
 This is a pnpm monorepo with three packages:
 
-- [`@patu/core`](packages/core/README.md) — the engine (config, HTTP client, cache, rewriters). Used directly if you're building your own integration.
-- [`@patu/cli`](packages/cli/README.md) — the `patu` command, for any build output.
-- [`@patu/vite`](packages/vite/README.md) — a Vite plugin that runs the same engine after `vite build`.
+- [`@patu.dev/core`](packages/core/README.md) — the engine (config, HTTP client, cache, rewriters). Used directly if you're building your own integration.
+- [`@patu.dev/cli`](packages/cli/README.md) — the `patu` command, for any build output.
+- [`@patu.dev/vite`](packages/vite/README.md) — a Vite plugin that runs the same engine after `vite build`.
 
 All packages require a Patu API key. Get one at [patu.dev](https://patu.dev)
 and set it as `PATU_KEY` in your environment.
@@ -15,15 +15,15 @@ and set it as `PATU_KEY` in your environment.
 ## Install
 
 ```bash
-npm install --save-dev @patu/cli
+npm install --save-dev @patu.dev/cli
 # or
-npm install --save-dev @patu/vite
+npm install --save-dev @patu.dev/vite
 ```
 
 ## CLI quick start
 
 ```bash
-PATU_KEY=your_key npx @patu/cli ./dist
+PATU_KEY=your_key npx @patu.dev/cli ./dist
 ```
 
 Optimizes images/SVG/fonts in `./dist` in place: smaller bytes written to
@@ -38,7 +38,7 @@ patu <dir> [--cdn] [--strict] [--endpoint URL] [--force]
 
 ```ts
 // vite.config.ts
-import patu from "@patu/vite";
+import patu from "@patu.dev/vite";
 
 export default {
   plugins: [patu()], // reads PATU_KEY; runs after `vite build`

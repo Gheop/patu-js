@@ -23,7 +23,7 @@ importers:
 
   packages/cli:
     dependencies:
-      '@patu/core':
+      '@patu.dev/core':
         specifier: workspace:*
         version: link:../core
 
@@ -38,7 +38,7 @@ importers:
 
   packages/vite:
     dependencies:
-      '@patu/core':
+      '@patu.dev/core':
         specifier: workspace:*
         version: link:../core
     devDependencies:

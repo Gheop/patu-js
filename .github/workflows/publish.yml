@@ -1,0 +1,33 @@
+name: Publish
+
+# Publishes all @patu.dev/* packages to npm when a version tag is pushed
+# (e.g. `git tag v0.1.0 && git push origin v0.1.0`), or on manual dispatch.
+# Auth comes from the NPM_TOKEN repository secret — never committed to the repo.
+on:
+  push:
+    tags: ["v*.*.*"]
+  workflow_dispatch:
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: "https://registry.npmjs.org"
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm -r build
+      - run: pnpm test
+
+      # publishConfig.access=public is set per package; workspace:* deps are
+      # rewritten to the published version automatically. core publishes first.
+      - run: pnpm -r publish --access public --no-git-checks
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

@@ -1,5 +1,5 @@
 import { resolve } from "node:path";
-import { resolveConfig as resolvePatuConfig, optimizeDir, type Mode } from "@patu/core";
+import { resolveConfig as resolvePatuConfig, optimizeDir, type Mode } from "@patu.dev/core";
 import type { Plugin, ResolvedConfig } from "vite";
 
 export interface PatuPluginOptions {
@@ -15,7 +15,7 @@ export interface PatuPluginOptions {
 // runs only for production builds (apply: "build").
 //
 // optimizeDir never throws on its own for a failed asset or for strict — that
-// policy now lives with the caller (see @patu/core's engine.ts). This plugin
+// policy now lives with the caller (see @patu.dev/core's engine.ts). This plugin
 // is the caller: after optimizeDir returns, if strict is set and at least one
 // asset failed, it throws from closeBundle, which fails the Vite build. In
 // every other case it just logs the summary and lets the build succeed.

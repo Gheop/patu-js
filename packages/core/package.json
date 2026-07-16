@@ -1,14 +1,54 @@
 {
-  "name": "@patu/core",
-  "version": "0.0.0",
+  "name": "@patu.dev/core",
+  "version": "0.1.0",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
-  "exports": { ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" } },
-  "files": ["dist"],
-  "scripts": { "build": "tsup" },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "prepublishOnly": "tsup"
+  },
   "dependencies": {
     "node-html-parser": "^6.1.13",
     "postcss": "^8.4.41"
-  }
+  },
+  "description": "Client, engine and HTML/CSS rewriters for the Patu asset-optimization API.",
+  "keywords": [
+    "patu",
+    "image-optimization",
+    "avif",
+    "webp",
+    "cdn",
+    "assets",
+    "svg",
+    "fonts",
+    "compression"
+  ],
+  "license": "MIT",
+  "author": "Patu",
+  "homepage": "https://github.com/Gheop/patu-js/tree/main/packages/core#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Gheop/patu-js.git",
+    "directory": "packages/core"
+  },
+  "bugs": {
+    "url": "https://github.com/Gheop/patu-js/issues"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "sideEffects": false
 }

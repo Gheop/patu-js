@@ -1,7 +1,7 @@
-# @patu/vite
+# @patu.dev/vite
 
-A Vite plugin that runs [`@patu/core`](../core/README.md)'s optimizer over
-Vite's build output — the same engine as [`@patu/cli`](../cli/README.md), so
+A Vite plugin that runs [`@patu.dev/core`](../core/README.md)'s optimizer over
+Vite's build output — the same engine as [`@patu.dev/cli`](../cli/README.md), so
 both behave identically. See the [root README](../../README.md) for the two
 modes and the never-bigger/never-break guarantees.
 
@@ -12,7 +12,7 @@ option.
 
 ```ts
 // vite.config.ts
-import patu from "@patu/vite";
+import patu from "@patu.dev/vite";
 
 export default {
   plugins: [patu()],

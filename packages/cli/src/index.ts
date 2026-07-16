@@ -1,5 +1,5 @@
 import { pathToFileURL } from "node:url";
-import { resolveConfig, optimizeDir } from "@patu/core";
+import { resolveConfig, optimizeDir } from "@patu.dev/core";
 import { looksLikeSource } from "./source-guard.js";
 
 interface Args { dir: string; mode: "optimize" | "cdn"; strict: boolean; force: boolean; endpoint?: string }
