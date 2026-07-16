@@ -1,6 +1,6 @@
 # 🕷️ Patu for JavaScript
 
-**Weave a lighter web.** One command — or one Vite plugin — and Patu shrinks the
+**Weave a lighter web.** One command, or one Vite plugin, and Patu shrinks the
 images, SVG and fonts your site ships, then (if you like) serves them from the
 edge. No local image toolchain, no native binaries to compile, no config
 spelunking. You point Patu at your build; smaller files come out the other side.
@@ -27,21 +27,21 @@ spelunking. You point Patu at your build; smaller files come out the other side.
 
 ## Why Patu?
 
-You already have a bundler. It minifies your JS and CSS beautifully — and then
-happily ships a 2 MB hero JPEG, a PNG chart that should have been WebP, and a
-full-fat TTF. The last mile of web weight is images, SVG and fonts, and doing it
-well means AVIF encoders, quality tuning, SVG sanitising, font subsetting… a
-toolchain nobody wants to babysit in CI.
+You already have a bundler. It minifies your JS and CSS beautifully, then happily
+ships a 2 MB hero JPEG, a PNG chart that should have been WebP, and a full-fat
+TTF. The last mile of web weight is images, SVG and fonts, and doing it well
+means AVIF encoders, quality tuning, SVG sanitising, font subsetting… a toolchain
+nobody wants to babysit in CI.
 
-Patu is that toolchain, hosted. You send bytes, you get back the smallest
-correct version — measured, never guessed. This package is the friendly front
-door: a CLI for any build, a plugin for Vite.
+Patu is that toolchain, hosted. You send bytes, you get back the smallest correct
+version, measured rather than guessed. This package is the friendly front door: a
+CLI for any build, a plugin for Vite.
 
 ## 30-second start
 
 Grab a free API key at **[patu.dev](https://patu.dev)**, set it as `PATU_KEY`, then:
 
-### CLI — works on any build output
+### CLI, for any build output
 
 ```bash
 PATU_KEY=your_key  npx @patu.dev/cli ./dist
@@ -51,7 +51,7 @@ PATU_KEY=your_key  npx @patu.dev/cli ./dist
 patu: 7/9 assets optimized, 1.9 MB saved (63%), 0 failed
 ```
 
-### Vite — set it and forget it
+### Vite, set it and forget it
 
 ```ts
 // vite.config.ts
@@ -63,7 +63,7 @@ export default {
 ```
 
 Run your build. Images come out as AVIF/WebP wrapped in a `<picture>` (with the
-original as a fallback), SVG comes out minified, fonts come out lean — all
+original as a fallback), SVG comes out minified, fonts come out lean, all
 "never bigger, never broken."
 
 ## Two ways to weave
@@ -71,20 +71,20 @@ original as a fallback), SVG comes out minified, fonts come out lean — all
 Patu has two modes. The default keeps everything on your own host; the opt-in
 mode moves delivery to the edge.
 
-### 🧵 `optimize` — smaller files, still yours _(default)_
+### 🧵 `optimize`: smaller files, still yours _(default)_
 
 Optimises **images, SVG and fonts** and writes the smaller bytes right back into
 your build directory. Nothing leaves your infrastructure, nothing is stored
-remotely — you just ship lighter files from wherever you ship today.
+remotely. You just ship lighter files from wherever you ship today.
 
 ```bash
 npx @patu.dev/cli ./dist
 ```
 
-### 🕸️ `cdn` — serve it from the edge _(opt-in)_
+### 🕸️ `cdn`: serve it from the edge _(opt-in)_
 
 Stores your assets on `cdn.patu.dev` and rewrites the references in your HTML and
-CSS to point there — Brotli-compressed, immutable-cached, and pinned with
+CSS to point there: Brotli-compressed, immutable-cached, and pinned with
 [Subresource Integrity](https://developer.mozilla.org/docs/Web/Security/Subresource_Integrity).
 This lane also covers your JS and CSS (delivery, not re-minifying). The local
 originals stay on disk as a fallback.
@@ -98,10 +98,10 @@ npx @patu.dev/cli ./dist --cdn
 
 - 🪶 **Never bigger.** If Patu can't beat a file, it leaves the original exactly
   as it was. Your build never gains weight.
-- 🧶 **Never breaks your build.** If an asset can't be optimised — network blip,
-  odd format, whatever — Patu keeps the original, prints a warning, and moves on.
-  Pass `--strict` (CLI) or `strict: true` (Vite) if you'd rather the build fail
-  loudly instead.
+- 🧶 **Never breaks your build.** If an asset can't be optimised (a network blip,
+  an odd format, whatever), Patu keeps the original, prints a warning, and moves
+  on. Pass `--strict` (CLI) or `strict: true` (Vite) if you'd rather the build
+  fail loudly instead.
 - 🔒 **Integrity by default.** Everything served from the CDN carries an SRI hash,
   so the browser verifies each file it fetches.
 
@@ -109,8 +109,8 @@ npx @patu.dev/cli ./dist --cdn
 
 | Package | What it's for |
 |---|---|
-| [`@patu.dev/cli`](packages/cli) | The `patu` command — optimise any build output directory. |
-| [`@patu.dev/vite`](packages/vite) | A Vite plugin — the same engine, wired into `vite build`. |
+| [`@patu.dev/cli`](packages/cli) | The `patu` command, to optimise any build output directory. |
+| [`@patu.dev/vite`](packages/vite) | A Vite plugin: the same engine, wired into `vite build`. |
 | [`@patu.dev/core`](packages/core) | The engine (API client, cache, rewriters). Use it directly to build your own integration. |
 
 ## CLI reference
@@ -127,7 +127,7 @@ patu <dir> [--cdn] [--strict] [--endpoint <url>] [--force]
 | `--force` | Run even if the target looks like a source directory. |
 
 Patu guards you from a classic footgun: point it at a folder that looks like
-**source** (has both `package.json` and `src/`) and it refuses — pass `--force`
+**source** (has both `package.json` and `src/`) and it refuses. Pass `--force`
 if you really mean it. Aim it at your build output (`dist/`, `build/`, `out/`).
 
 ```bash
@@ -147,7 +147,7 @@ patu({
 ```
 
 The plugin only runs on `vite build` (never during `vite dev`), and it processes
-what Vite actually emitted — hashed filenames and all.
+what Vite actually emitted, hashed filenames and all.
 
 ## Good to know (the honest bits)
 
@@ -161,7 +161,7 @@ We'd rather tell you the edges up front than have you find them at 2 a.m.
 - **Only static references are rewritten.** Patu rewrites `<img src>`,
   `<script src>`, `<link href>` and CSS `url()`/`@font-face` as written in your
   build output. URLs your app builds at runtime in JavaScript are left untouched.
-- **Requires Node 20+, and it's ESM-only** — same neighbourhood as modern Vite.
+- **Requires Node 20+, and it's ESM-only** (same neighbourhood as modern Vite).
 
 ## How it works
 
@@ -185,11 +185,11 @@ cheap, and a failing asset only ever affects itself.
 
 ## About the name
 
-*Patu digua* is one of the smallest spiders known — about **0.37 mm**, small
+*Patu digua* is one of the smallest spiders known, about **0.37 mm**, small
 enough to live on the webs of *larger* spiders. It weaves the lightest thread
 there is. That's the whole idea: let something tiny do the weaving, so your pages
 stay light. 🕸️
 
 ## License
 
-[MIT](./LICENSE) — do what you like with it.
+[MIT](./LICENSE). Do what you like with it.
