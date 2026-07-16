@@ -36,6 +36,16 @@ importers:
         specifier: ^8.4.41
         version: 8.5.19
 
+  packages/vite:
+    dependencies:
+      '@patu/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      vite:
+        specifier: ^5.4.0
+        version: 5.4.21(@types/node@20.19.43)
+
 packages:
 
   '@esbuild/aix-ppc64@0.21.5':
