@@ -14,3 +14,4 @@ export { AssetCache, contentHash } from "./cache.js";
 export type { CacheEntry } from "./cache.js";
 export { rewriteHtml } from "./rewrite-html.js";
 export type { RewriteMap, RewriteEntry, PictureRef } from "./rewrite-html.js";
+export { rewriteCss } from "./rewrite-css.js";
