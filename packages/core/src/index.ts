@@ -10,3 +10,5 @@ export { PatuClient } from "./client.js";
 export type { CompressOutcome, StoreOutcome } from "./client.js";
 export { parseManifest } from "./manifest.js";
 export type { Manifest, ManifestVariant } from "./manifest.js";
+export { AssetCache, contentHash } from "./cache.js";
+export type { CacheEntry } from "./cache.js";
